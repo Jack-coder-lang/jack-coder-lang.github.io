@@ -165,6 +165,15 @@
   @media (min-width: 761px) and (max-width: 940px) {
     .skills { grid-template-columns: repeat(2, 1fr); }
   }
+  /* Effet machine à écrire sur le nom */
+  #hero-name { position: relative; }
+  #hero-name .ghost { visibility: hidden; }
+  #hero-name .live { position: absolute; inset: 0; }
+  .caret { display: inline-block; width: .08em; height: .9em; margin-left: .08em; vertical-align: -.08em;
+           background: var(--accent); border-radius: 1px; }
+  @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  .caret { animation: blink 1s step-end infinite; }
+  #hero-name.typing .caret { animation: none; opacity: 1; }
   /* Interactions (toujours actives, sobres) */
   .btn, .card, .photo, .tags span, nav a, .contact .item { transition: transform .25s ease, box-shadow .25s ease, background-color .25s ease, color .2s ease, border-color .25s ease; }
   .btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, .25); }
@@ -255,7 +264,7 @@
     </svg>
     <div>
       <div class="eyebrow">Data Engineer · Développeur web · Abidjan, Côte d'Ivoire</div>
-      <h1>GARANET Effossou Jack Silvan</h1>
+      <h1 id="hero-name" aria-label="GARANET Effossou Jack Silvan"><span class="ghost" aria-hidden="true">GARANET Effossou Jack Silvan</span><span class="live" aria-hidden="true"><span class="typed">GARANET Effossou Jack Silvan</span><span class="caret"></span></span></h1>
       <p class="lead">Je conçois des plateformes de données de bout en bout (Data Vault 2.0, pipelines ELT, orchestration, tableaux de bord)
         et je développe les applications web qui les utilisent, du front React ou Laravel jusqu'au déploiement sur serveur. Diplômé d'un Master 2 Big Data et IA (eBIHAR, ESTIA), mémoire soutenu le 24 octobre 2026.</p>
       <div class="actions">
@@ -422,6 +431,26 @@
 </div>
 
 <script>
+  (function () {
+    var h = document.getElementById('hero-name');
+    var el = h && h.querySelector('.typed');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!el || reduce) return;
+    var text = el.textContent, i = 0;
+    el.textContent = '';
+    h.classList.add('typing');
+    function step() {
+      i++;
+      el.textContent = text.slice(0, i);
+      if (i < text.length) {
+        var c = text.charAt(i - 1);
+        setTimeout(step, c === ' ' ? 140 : 55 + Math.random() * 60);
+      } else {
+        h.classList.remove('typing');
+      }
+    }
+    setTimeout(step, 450);
+  })();
   (function () {
     var bar = document.getElementById('progress'), nav = document.getElementById('topnav');
     var tick = false;
