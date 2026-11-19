@@ -76,7 +76,10 @@
   nav a:hover, nav a:focus-visible { color: var(--accent); }
   a:focus-visible, button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; border-radius: 4px; }
 
-  .hero { position: relative; isolation: isolate; overflow: hidden; }
+  .hero { position: relative; isolation: isolate; overflow: visible; }
+  body { overflow-x: clip; }
+  .pipes { position: absolute; top: 0; bottom: 0; left: 50%; width: 100vw; height: 100%; transform: translateX(-50%);
+           z-index: -2; pointer-events: none; display: block; }
   .dv-mark { position: absolute; right: 0; bottom: 6px; width: 230px; max-width: 60%; height: auto; z-index: -1;
              color: var(--accent); opacity: .14; pointer-events: none; }
   .dv-mark text { font-family: var(--mono); font-size: 13px; fill: currentColor; }
@@ -252,6 +255,7 @@
   </nav>
 
   <header class="hero">
+    <canvas class="pipes" aria-hidden="true"></canvas>
     <svg class="dv-mark" viewBox="0 0 420 200" aria-hidden="true">
       <g fill="none" stroke="currentColor" stroke-width="2">
         <line x1="90" y1="70" x2="210" y2="110"/><line x1="330" y1="70" x2="210" y2="110"/>
@@ -437,6 +441,86 @@
 </div>
 
 <script>
+  // Pipelines de données en arrière-plan du haut de page
+  (function () {
+    var cv = document.querySelector('.hero .pipes');
+    if (!cv || !cv.getContext) return;
+    var ctx = cv.getContext('2d'), hero = cv.parentNode;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var W = 0, H = 0, lanes = [], color = '159,208,245', running = true, last = 0;
+
+    function rgbOf(c) {
+      var m = c.match(/^#([0-9a-f]{6})$/i);
+      if (m) { var n = parseInt(m[1], 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(','); }
+      m = c.match(/\d+(\.\d+)?/g); return m && m.length >= 3 ? m.slice(0, 3).join(',') : '159,208,245';
+    }
+    function build() {
+      var r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = r.width; H = r.height;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      color = rgbOf(getComputedStyle(hero).getPropertyValue('--accent').trim() || '#9fd0f5');
+      lanes = [];
+      var count = W < 700 ? 3 : 5;
+      for (var i = 0; i < count; i++) {
+        var y = H * (0.14 + 0.72 * (i + Math.random() * 0.6) / count), x = -30, pts = [[x, y]];
+        while (x < W + 30) {
+          x += 120 + Math.random() * 220;
+          pts.push([x, y]);
+          if (x < W && Math.random() < 0.6) {
+            y = Math.max(16, Math.min(H - 16, y + (Math.random() < 0.5 ? -1 : 1) * (24 + Math.random() * 44)));
+            pts.push([x, y]);
+          }
+        }
+        var segs = [], len = 0;
+        for (var k = 1; k < pts.length; k++) {
+          var dx = pts[k][0] - pts[k - 1][0], dy = pts[k][1] - pts[k - 1][1], l = Math.hypot(dx, dy);
+          segs.push({ a: pts[k - 1], b: pts[k], l: l, s: len }); len += l;
+        }
+        var packets = [];
+        for (var q = 0; q < 2; q++) packets.push({ d: Math.random() * len, v: 35 + Math.random() * 45 });
+        lanes.push({ pts: pts, segs: segs, len: len, packets: packets });
+      }
+    }
+    function at(lane, d) {
+      for (var i = 0; i < lane.segs.length; i++) {
+        var g = lane.segs[i];
+        if (d <= g.s + g.l) { var t = (d - g.s) / g.l; return [g.a[0] + (g.b[0] - g.a[0]) * t, g.a[1] + (g.b[1] - g.a[1]) * t]; }
+      }
+      return lane.pts[lane.pts.length - 1];
+    }
+    function draw(dt) {
+      ctx.clearRect(0, 0, W, H);
+      lanes.forEach(function (lane) {
+        ctx.beginPath();
+        lane.pts.forEach(function (p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); });
+        ctx.strokeStyle = 'rgba(' + color + ',.10)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = 'rgba(' + color + ',.16)';
+        lane.pts.forEach(function (p, i) { if (i && i < lane.pts.length - 1) ctx.fillRect(p[0] - 2.5, p[1] - 2.5, 5, 5); });
+        lane.packets.forEach(function (pk) {
+          pk.d = (pk.d + pk.v * dt) % lane.len;
+          for (var t = 0; t < 8; t++) {
+            var d = pk.d - t * 5; if (d < 0) break;
+            var p = at(lane, d);
+            ctx.beginPath(); ctx.arc(p[0], p[1], 2.2 - t * 0.2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(' + color + ',' + (0.5 - t * 0.06).toFixed(2) + ')'; ctx.fill();
+          }
+        });
+      });
+    }
+    function frame(ts) {
+      if (!running) { last = 0; return; }
+      var dt = last ? Math.min(0.05, (ts - last) / 1000) : 0; last = ts;
+      draw(dt); requestAnimationFrame(frame);
+    }
+    build(); draw(0);
+    var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { build(); draw(0); }, 150); });
+    if (reduce) return;
+    function setRun(v) { if (v && !running) { running = true; requestAnimationFrame(frame); } else if (!v) running = false; }
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { setRun(e[0].isIntersecting && !document.hidden); }).observe(hero);
+    document.addEventListener('visibilitychange', function () { setRun(!document.hidden); });
+    requestAnimationFrame(frame);
+  })();
   (function () {
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var h = document.getElementById('hero-name');
