@@ -169,6 +169,11 @@
   #hero-name { position: relative; }
   #hero-name .ghost { visibility: hidden; }
   #hero-name .live { position: absolute; inset: 0; }
+  .lead.streamable { position: relative; }
+  .lead .ghost { visibility: hidden; }
+  .lead .live { position: absolute; inset: 0; }
+  .lead .caret { height: 1.05em; width: 2px; vertical-align: -.18em; margin-left: 2px; }
+  .lead.typing .caret { animation: none; opacity: 1; }
   .caret { display: inline-block; width: .08em; height: .9em; margin-left: .08em; vertical-align: -.08em;
            background: var(--accent); border-radius: 1px; }
   @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
@@ -432,10 +437,28 @@
 
 <script>
   (function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var h = document.getElementById('hero-name');
     var el = h && h.querySelector('.typed');
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var nameCaret = h && h.querySelector('.caret');
+    var lead = document.querySelector('.hero .lead');
     if (!el || reduce) return;
+
+    // Prépare la phrase : sa place est réservée par un double invisible, le texte s'écrit par-dessus
+    var leadText = '', leadTyped = null, leadCaret = null;
+    if (lead) {
+      leadText = lead.textContent.replace(/\s+/g, ' ').trim();
+      lead.setAttribute('aria-label', leadText);
+      lead.classList.add('streamable');
+      lead.innerHTML = '';
+      var ghost = document.createElement('span'); ghost.className = 'ghost'; ghost.setAttribute('aria-hidden', 'true'); ghost.textContent = leadText;
+      var live = document.createElement('span'); live.className = 'live'; live.setAttribute('aria-hidden', 'true');
+      leadTyped = document.createElement('span');
+      leadCaret = document.createElement('span'); leadCaret.className = 'caret'; leadCaret.hidden = true;
+      live.appendChild(leadTyped); live.appendChild(leadCaret);
+      lead.appendChild(ghost); lead.appendChild(live);
+    }
+
     var text = el.textContent, i = 0;
     el.textContent = '';
     h.classList.add('typing');
@@ -447,7 +470,29 @@
         setTimeout(step, c === ' ' ? 140 : 55 + Math.random() * 60);
       } else {
         h.classList.remove('typing');
+        if (leadTyped) setTimeout(streamLead, 380);
       }
+    }
+
+    // La phrase arrive par petits groupes de mots, comme une réponse qui se rédige
+    function streamLead() {
+      var words = leadText.split(' '), k = 0;
+      nameCaret.hidden = true;
+      leadCaret.hidden = false;
+      lead.classList.add('typing');
+      function next() {
+        var n = 1 + Math.floor(Math.random() * 3);
+        k = Math.min(words.length, k + n);
+        leadTyped.textContent = words.slice(0, k).join(' ');
+        if (k < words.length) {
+          var last = words[k - 1];
+          var pause = /[,.:;]$/.test(last) || /\)$/.test(last) ? 260 : 70 + Math.random() * 70;
+          setTimeout(next, pause);
+        } else {
+          lead.classList.remove('typing');
+        }
+      }
+      next();
     }
     setTimeout(step, 450);
   })();
