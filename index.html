@@ -17,8 +17,11 @@
 <style>
   /* Mise en page : une seule colonne centrée de 960px, sections séparées par des filets fins, bleu du CV en accent */
   :root {
-    --bg: #f6f8fb;
+    --bg: #e8eff7;
     --surface: #ffffff;
+    --band: #0f3460;
+    --band-2: #0b2a4e;
+    --tint: #d6e4f3;
     --fg: #14243a;
     --muted: #556479;
     --line: #dde4ee;
@@ -31,15 +34,27 @@
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0d1520; --surface: #142030; --fg: #e6edf6; --muted: #9aabc0; --line: #23344a;
+      --bg: #0d1520; --surface: #142030; --band: #0a2240; --band-2: #071a33; --tint: #101c2b; --fg: #e6edf6; --muted: #9aabc0; --line: #23344a;
       --accent: #8cc4f0; --accent-2: #5aa9e6; --chip: #1a2c42; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0d1520; --surface: #142030; --fg: #e6edf6; --muted: #9aabc0; --line: #23344a;
+    --bg: #0d1520; --surface: #142030; --band: #0a2240; --band-2: #071a33; --tint: #101c2b; --fg: #e6edf6; --muted: #9aabc0; --line: #23344a;
     --accent: #8cc4f0; --accent-2: #5aa9e6; --chip: #1a2c42; color-scheme: dark;
   }
 
+  /* Zones en bandeau marine : on redéfinit les jetons localement, tout le contenu suit */
+  nav, .hero, #contact, footer {
+    --fg: #ffffff; --muted: #b9cde4; --surface: rgba(255, 255, 255, .07); --line: rgba(255, 255, 255, .18);
+    --accent: #9fd0f5; --accent-2: #9fd0f5; --chip: rgba(255, 255, 255, .1);
+  }
+  nav, .hero { --bg: var(--band); background: var(--band); box-shadow: 0 0 0 100vmax var(--band); clip-path: inset(0 -100vmax); }
+  #contact, footer { --bg: var(--band-2); background: var(--band-2); box-shadow: 0 0 0 100vmax var(--band-2); clip-path: inset(0 -100vmax); }
+  #competences { margin-top: 48px; padding-block: 48px; background: var(--tint); box-shadow: 0 0 0 100vmax var(--tint); clip-path: inset(0 -100vmax); }
+  #contact { margin-top: 56px; padding-block: 48px 32px; }
+  footer { margin-top: 0 !important; border-top: 1px solid var(--line) !important; padding-block: 20px 28px; }
+  .wrap { padding-block: 0 !important; }
+  .hero { border-bottom: 0 !important; }
   body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.6; }
   .wrap { max-width: 960px; margin: 0 auto; padding-block: 0 48px;
           padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -47,8 +62,8 @@
   nav { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-block: 16px; flex-wrap: wrap;
         position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg);
         box-shadow: 0 0 0 100vmax var(--bg); clip-path: inset(0 -100vmax); }
-  nav.scrolled { box-shadow: 0 0 0 100vmax var(--bg), 0 1px 0 100vmax var(--line); }
-  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+  nav.scrolled { box-shadow: 0 0 0 100vmax var(--band), 0 6px 18px rgba(0, 0, 0, .18); clip-path: inset(0 -100vmax -24px); }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--band); }
   .progress { position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; height: 2px; z-index: 40;
               background: var(--accent-2); transform-origin: left; transform: scaleX(0); pointer-events: none; }
   nav .links a.active { color: var(--accent); }
@@ -152,7 +167,7 @@
   }
   /* Interactions (toujours actives, sobres) */
   .btn, .card, .photo, .tags span, nav a, .contact .item { transition: transform .25s ease, box-shadow .25s ease, background-color .25s ease, color .2s ease, border-color .25s ease; }
-  .btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 52, 96, .25); }
+  .btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, .25); }
   .btn.ghost:hover { background: var(--chip); }
   .card:hover { transform: translateY(-4px); border-color: var(--accent-2); box-shadow: 0 12px 28px rgba(15, 52, 96, .12); }
   .card:hover .tags span { background: var(--accent); color: var(--bg); }
